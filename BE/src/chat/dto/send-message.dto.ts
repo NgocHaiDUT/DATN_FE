@@ -1,0 +1,26 @@
+import { IsString, IsInt, IsOptional, IsIn, IsObject } from 'class-validator';
+import { message_type } from '@prisma/client';
+
+export class SendMessageDto {
+  @IsInt()
+  senderId: number;
+
+  @IsInt()
+  receiverId: number;
+
+  @IsOptional()
+  @IsInt()
+  senderShopId?: number; // Nếu gửi từ shop
+
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @IsOptional()
+  @IsIn(Object.values(message_type))
+  type?: message_type;
+
+  @IsOptional()
+  @IsObject()
+  payload?: any;
+}

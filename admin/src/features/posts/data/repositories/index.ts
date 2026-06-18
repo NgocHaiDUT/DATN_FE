@@ -1,0 +1,1 @@
+export { PostRepositoryImpl } from './PostRepositoryImpl';

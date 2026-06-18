@@ -1,0 +1,72 @@
+[
+  {
+    "shop_id": 1,
+    "name": "BeautyShop - Chi nhánh Cầu Giấy",
+    "phone": "0345671392",
+    "email": "caugiay@beautyshop.vn",
+    "province": "Thành phố Hà Nội",
+    "district": "Quận Cầu Giấy",
+    "ward": "Phường Dịch Vọng",
+    "street": "156 Xuân Thủy",
+    "is_default": false,
+    "ghn_province_id": 201,
+    "ghn_district_id": 1485,
+    "ghn_ward_code": "1A0601"
+  },
+  {
+    "shop_id": 2,
+    "name": "SkincareShop - Chi nhánh Quận 3",
+    "phone": "0345671393",
+    "email": "q3@skincareshop.vn",
+    "province": "Thành phố Hồ Chí Minh",
+    "district": "Quận 3",
+    "ward": "Phường Võ Thị Sáu",
+    "street": "234 Võ Văn Tần",
+    "is_default": false,
+    "ghn_province_id": 202,
+    "ghn_district_id": 1444,
+    "ghn_ward_code": "90795"
+  },
+  {
+    "shop_id": 2,
+    "name": "SkincareShop - Chi nhánh Thủ Đức",
+    "phone": "0345671393",
+    "email": "thuduc@skincareshop.vn",
+    "province": "Thành phố Hồ Chí Minh",
+    "district": "Thành phố Thủ Đức",
+    "ward": "Phường Linh Trung",
+    "street": "456 Đại lộ Võ Văn Ngân",
+    "is_default": false,
+    "ghn_province_id": 202,
+    "ghn_district_id": 3695,
+    "ghn_ward_code": "90737"
+  },
+  {
+    "shop_id": 3,
+    "name": "MakeupShop - Chi nhánh Sơn Trà",
+    "phone": "0345671394",
+    "email": "sontra@makeupshop.vn",
+    "province": "Thành phố Đà Nẵng",
+    "district": "Quận Sơn Trà",
+    "ward": "Phường Thọ Quang",
+    "street": "67 Võ Nguyên Giáp",
+    "is_default": false,
+    "ghn_province_id": 203,
+    "ghn_district_id": 1528,
+    "ghn_ward_code": "40307"
+  },
+  {
+    "shop_id": 4,
+    "name": "CosmeticShop - Chi nhánh Cái Răng",
+    "phone": "0345671395",
+    "email": "cairang@cosmeticshop.vn",
+    "province": "Thành phố Cần Thơ",
+    "district": "Quận Cái Răng",
+    "ward": "Phường Lê Bình",
+    "street": "89 Mậu Thân",
+    "is_default": false,
+    "ghn_province_id": 220,
+    "ghn_district_id": 1574,
+    "ghn_ward_code": "550304"
+  }
+]

@@ -1,0 +1,212 @@
+# rule.mcd
+# Purpose: Instruct GitHub Copilot / Copilot Chat to generate code
+# following:
+# - Architecture: Feature-based + Clean Architecture
+# - Tech stack: React (v18+), TypeScript, React Router, React Query,
+#               Redux Toolkit (optional), TailwindCSS
+# - Goals: clear separation of concerns, testability, maintainability,
+#          minimal direct coupling to infrastructure
+
+purpose:
+  - "When the user asks to generate, create, add, implement, or refactor, Copilot must follow this file."
+  - "Any new files related to a business feature must follow the feature-based folder structure."
+  - "Separate the four layers: Domain (entities, interfaces), Use Cases (interactors), Data (repositories, API), Presentation (UI, hooks)."
+
+global_rules:
+  - "Do not place business logic directly in React components."
+  - "The domain layer must not import React or any network/DB specifics."
+  - "Use cases depend only on domain interfaces and never directly call axios/fetch."
+  - "Repository implementations in the data layer handle all I/O and DTO mapping."
+  - "Each feature has its own folder under features/<feature-name>/."
+  - "Use TypeScript types/interfaces for all DTOs, props, and function outputs."
+  - "Follow immutability wherever possible; return new objects instead of mutating."
+  - "All exported classes and functions must include short JSDoc comments."
+
+project_structure:
+  description: "Example TypeScript folder structure"
+  tree: |
+    src/
+     ├─ app/                    # router, global store, DI, providers
+     ├─ features/
+     │   ├─ auth/
+     │   │   ├─ domain/
+     │   │   │   ├─ entities/
+     │   │   │   └─ repositories/
+     │   │   ├─ usecases/
+     │   │   ├─ data/
+     │   │   │   ├─ api/
+     │   │   │   └─ repositories/
+     │   │   ├─ ui/
+     │   │   │   ├─ components/
+     │   │   │   └─ pages/
+     │   │   └─ hooks/
+     ├─ shared/
+     │   ├─ components/
+     │   ├─ utils/
+     │   └─ types/
+     └─ index.tsx
+
+naming_conventions:
+  - "Feature folders: kebab-case (e.g. features/user-profile)"
+  - "Entities: PascalCase (User, Product)"
+  - "Interfaces: I + PascalCase (IUserRepository)"
+  - "Classes & use cases: PascalCase (LoginUserUseCase)"
+  - "Hooks: use + camelCase (useLogin, useProductsQuery)"
+  - "Components: PascalCase (LoginForm.tsx)"
+  - "Files: .ts/.tsx suffix; constants -> consts.ts"
+
+feature_layer_definitions:
+  domain:
+    - "Contains entities, value objects, domain errors, repository interfaces."
+    - "Must have no side effects and no framework imports."
+  usecases:
+    - "Contains business orchestration, validation, and application-specific flows."
+    - "Define clear input/output DTOs."
+  data:
+    - "Implements repository interfaces, handles HTTP/localStorage and DTO/Object mapping."
+  presentation:
+    - "Contains React components, pages, and hooks with no direct business logic."
+
+di_and_factories:
+  - "Use either simple factory functions or a DI container (e.g., tsyringe) for larger projects."
+  - "For smaller projects, a local factory per feature is acceptable."
+
+state_management:
+  server_state:
+    - "Use React Query or SWR for network data fetching."
+  client_state:
+    - "Use Redux Toolkit or Zustand for cross-feature application state."
+  local_state:
+    - "Use useState/useReducer for local UI state."
+
+code_style:
+  typescript:
+    tsconfig:
+      target: "ES2020"
+      strict: true
+  linting:
+    eslint: "Airbnb/TypeScript style or similar"
+    prettier: "Use Prettier for formatting"
+  comments:
+    - "Every exported function or class requires a short JSDoc description."
+
+react_patterns:
+  components:
+    - "Split large components (>200 lines)."
+    - "Use presentational components with props; logic goes in hooks or use cases."
+  hooks:
+    - "Hooks calling use cases or repositories must start with 'use'."
+    - "Return { data, loading, error, actions } when applicable."
+  api_calls:
+    - "All HTTP requests routed through data layer repository implementations."
+    - "Centralize axios/fetch config in src/app/apiClient.ts."
+  routing:
+    - "Use React Router v6, define routes in src/app/router.tsx."
+  forms:
+    - "Use react-hook-form for complex forms with validations handled in use cases or validation utilities."
+
+examples:
+  usecase_example: |
+    // features/auth/usecases/LoginUserUseCase.ts
+    /**
+     * LoginUserUseCase handles user login via IUserRepository.
+     */
+    export class LoginUserUseCase {
+      constructor(private userRepo: IUserRepository) {}
+      async execute(input: { email: string; password: string; }): Promise<User> {
+        if (!input.email || !input.password)
+          throw new Error('Invalid input');
+        return this.userRepo.login(input.email, input.password);
+      }
+    }
+  repository_impl_example: |
+    // features/auth/data/repositories/UserRepositoryImpl.ts
+    /**
+     * Implements IUserRepository using an API client.
+     */
+    export class UserRepositoryImpl implements IUserRepository {
+      constructor(private apiClient: ApiClient) {}
+      async login(email: string, password: string): Promise<User> {
+        const res = await this.apiClient.post('/auth/login', { email, password });
+        return mapUserDtoToEntity(res.data);
+      }
+    }
+  hook_adapter_example: |
+    // features/auth/hooks/useLogin.ts
+    export const useLogin = () => {
+      const userRepo = useDI('UserRepository');
+      const loginUC = new LoginUserUseCase(userRepo);
+      const [loading, setLoading] = useState(false);
+
+      const login = async (email: string, password: string) => {
+        setLoading(true);
+        try {
+          await loginUC.execute({ email, password });
+        } finally {
+          setLoading(false);
+        }
+      };
+      return { login, loading };
+    }
+
+testing:
+  unit_tests:
+    - "Use Jest + @testing-library/react."
+    - "Mock repository interfaces when testing use cases."
+  integration_tests:
+    - "Use MSW for API mocking in repository tests."
+  coverage:
+    - "Aim for at least 80% coverage on domain and use cases."
+
+commit_and_pr:
+  commit_message:
+    - "Use conventional commits, e.g., feat(auth): add login usecase"
+    - "fix(ui): correct nav responsiveness"
+  pr_description:
+    - "Summarize changes, list files, show testing steps, add screenshots if UI."
+  code_review:
+    - "Create focused, concise pull requests."
+
+best_practices_and_antipatterns:
+  - "Do not place environment-specific logic in the domain layer."
+  - "Avoid dumping unrelated code in shared/ if it is not truly reusable."
+  - "Do not generate CSS-in-JS unless explicitly required; prefer Tailwind or CSS modules."
+
+snippets_and_templates:
+  create_feature_template: |
+    # When asked to scaffold feature 'X':
+    features/x/
+      domain/entities/X.ts
+      domain/repositories/IXRepository.ts
+      usecases/DoXUseCase.ts
+      data/api/xApi.ts
+      data/repositories/XRepositoryImpl.ts
+      ui/components/XList.tsx
+      ui/pages/XPage.tsx
+      hooks/useX.ts
+      index.ts
+  react_component_template: |
+    /**
+     * ComponentName.tsx - Presentational component example
+     */
+    import React from 'react';
+
+    export interface ComponentNameProps {
+      title: string;
+      onClick?: () => void;
+    }
+
+    export const ComponentName: React.FC<ComponentNameProps> = ({ title, onClick }) => {
+      return <button onClick={onClick}>{title}</button>;
+    };
+
+how_to_use:
+  - "Place rule.mcd at the root of the repository."
+  - "When using Copilot Chat, prepend prompts with: 'Follow rule.mcd' or reference the file."
+  - "Example: 'Follow rule.mcd. Scaffold feature \"products\" with pages, entity, repo impl, and use case.'"
+
+notes:
+  - "This file influences Copilot suggestions; effectiveness depends on context size and usage."
+  - "Extend with organization-specific rules if needed."
+
+# End of rule.mcd

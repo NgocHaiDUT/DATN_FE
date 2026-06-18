@@ -1,0 +1,80 @@
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { SearchService } from './search.service';
+import { SearchQueryDto, AutocompleteDto } from './dto/search.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+
+@Controller('search')
+export class SearchController {
+  constructor(private readonly searchService: SearchService) {}
+
+  /**
+   * Search endpoint tổng hợp
+   * GET /search?q=beauty&type=product&limit=20
+   */
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async search(@Query() dto: SearchQueryDto) {
+    return this.searchService.searchAll(dto);
+  }
+
+  /**
+   * Search products
+   * GET /search/products?q=lipstick&limit=20
+   */
+  @Get('products')
+  @UseGuards(JwtAuthGuard)
+  async searchProducts(@Query() dto: SearchQueryDto) {
+    const results = await this.searchService.searchProducts(dto.q, dto.limit);
+    return {
+      success: true,
+      data: {
+        results,
+        total: results.length,
+      },
+    };
+  }
+
+  /**
+   * Search users
+   * GET /search/users?q=john&limit=20
+   */
+  @Get('users')
+  @UseGuards(JwtAuthGuard)
+  async searchUsers(@Query() dto: SearchQueryDto) {
+    const results = await this.searchService.searchUsers(dto.q, dto.limit);
+    return {
+      success: true,
+      data: {
+        results,
+        total: results.length,
+      },
+    };
+  }
+
+  /**
+   * Search shops
+   * GET /search/shops?q=beauty&limit=20
+   */
+  @Get('shops')
+  @UseGuards(JwtAuthGuard)
+  async searchShops(@Query() dto: SearchQueryDto) {
+    const results = await this.searchService.searchShops(dto.q, dto.limit);
+    return {
+      success: true,
+      data: {
+        results,
+        total: results.length,
+      },
+    };
+  }
+
+  /**
+   * Autocomplete suggestions
+   * GET /search/autocomplete?q=bea&limit=5
+   */
+  @Get('autocomplete')
+  @UseGuards(JwtAuthGuard)
+  async autocomplete(@Query() dto: AutocompleteDto) {
+    return this.searchService.autocomplete(dto.q, dto.limit);
+  }
+}

@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const p = new PrismaClient(); p.$queryRawUnsafe("SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name").then(r => { r.forEach(t => console.log(t.table_name)); }).catch(e => console.error(e.message)).finally(() => p.$disconnect());

@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+logs
+uploads
+.env
+.env.*
+!.env.example
+!.env.aws.example
+npm-debug.log*
+Dockerfile
+docker-compose*.yml
