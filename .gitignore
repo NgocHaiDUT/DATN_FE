@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.docker.example
+
+node_modules
+dist
+build
+.next
+coverage
+logs
+*.log
+
+.DS_Store
+Thumbs.db

@@ -1,0 +1,59 @@
+services:
+  backend:
+    build:
+      context: ./BE
+    image: pbl6-backend:latest
+    env_file:
+      - ./BE/.env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"require('http').get('http://127.0.0.1:3000/api', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))\""
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./FE
+      args:
+        BACKEND_URL: ${BACKEND_URL:-http://backend:3000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api-proxy}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api-proxy}
+        NEXT_PUBLIC_SOCKET_URL: ${NEXT_PUBLIC_SOCKET_URL:-}
+    image: pbl6-frontend:latest
+    environment:
+      NODE_ENV: production
+      BACKEND_URL: ${BACKEND_URL:-http://backend:3000}
+    ports:
+      - "3001:3001"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ./admin
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    image: pbl6-admin:latest
+    ports:
+      - "3002:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+networks:
+  default:
+    name: pbl6-prod
