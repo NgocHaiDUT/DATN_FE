@@ -42,26 +42,34 @@ export class DataInitService implements OnModuleInit {
       await this.seedPermissions();
       await this.seedRolePermissions();
 
-      // Check xem đã có dữ liệu chưa - nếu có rồi thì không cần upload và seed phần còn lại
-      const existingBrands = await this.prisma.brands.count();
-      if (existingBrands > 0) {
-        this.logger.log(
-          '✅ Roles & Permissions đã sync, dữ liệu khác đã tồn tại',
-        );
-        return;
-      }
-
-      this.logger.log('🚀 Bắt đầu seed dữ liệu mới...');
+      this.logger.log('Checking and filling missing initial data...');
 
       // Chỉ upload S3 khi USE_S3=true, còn không dùng đường dẫn local
       if (process.env.USE_S3 === 'true') {
-        try {
-          await this.uploadAllImagesToS3();
-        } catch (uploadError) {
-          this.logger.warn(
-            '⚠️  Không thể upload ảnh lên S3, sẽ dùng đường dẫn local:',
-            uploadError.message,
-          );
+        const [brandCount, shopCount, productCount, postCount] =
+          await Promise.all([
+            this.prisma.brands.count(),
+            this.prisma.shops.count(),
+            this.prisma.products.count(),
+            this.prisma.posts.count(),
+          ]);
+
+        if (
+          brandCount === 0 ||
+          shopCount === 0 ||
+          productCount === 0 ||
+          postCount === 0
+        ) {
+          try {
+            await this.uploadAllImagesToS3();
+          } catch (uploadError) {
+            this.logger.warn(
+              '⚠️  Không thể upload ảnh lên S3, sẽ dùng đường dẫn local:',
+              uploadError.message,
+            );
+          }
+        } else {
+          this.logger.log('ℹ️  Media data already exists, skipping S3 upload');
         }
       } else {
         this.logger.log('ℹ️  USE_S3=false → dùng ảnh local, bỏ qua upload S3');
