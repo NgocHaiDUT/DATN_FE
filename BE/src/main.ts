@@ -39,6 +39,9 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       const allowedOrigins = [
+        'https://bkdnbeauty.io.vn',
+        'https://www.bkdnbeauty.io.vn',
+        'https://admin.bkdnbeauty.io.vn',
         'https://pbl6-fe.duckdns.org',
         'https://pbl6-admin.duckdns.org',
         'http://localhost:3001',

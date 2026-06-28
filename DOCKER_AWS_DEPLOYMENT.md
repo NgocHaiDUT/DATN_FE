@@ -28,9 +28,9 @@ AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
 AWS_S3_BUCKET_NAME=YOUR_BUCKET
 AWS_S3_URL=https://YOUR_BUCKET.s3.ap-southeast-1.amazonaws.com
 
-FRONTEND_URL=https://your-domain.com
-BACKEND_URL=https://api.your-domain.com
-ADMIN_URL=https://admin.your-domain.com
+FRONTEND_URL=https://bkdnbeauty.io.vn
+BACKEND_URL=https://api.bkdnbeauty.io.vn
+ADMIN_URL=https://admin.bkdnbeauty.io.vn
 ```
 
 Root Compose values use `.env`. Start from:
@@ -93,7 +93,7 @@ Use Nginx on the host to expose HTTPS domains:
 ```nginx
 server {
     listen 80;
-    server_name api.your-domain.com;
+    server_name api.bkdnbeauty.io.vn;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -109,7 +109,7 @@ server {
 
 server {
     listen 80;
-    server_name your-domain.com www.your-domain.com;
+    server_name bkdnbeauty.io.vn www.bkdnbeauty.io.vn;
 
     location / {
         proxy_pass http://127.0.0.1:3001;
@@ -122,7 +122,7 @@ server {
 
 server {
     listen 80;
-    server_name admin.your-domain.com;
+    server_name admin.bkdnbeauty.io.vn;
 
     location / {
         proxy_pass http://127.0.0.1:3002;
@@ -138,9 +138,9 @@ Then enable HTTPS:
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d api.your-domain.com
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com
-sudo certbot --nginx -d admin.your-domain.com
+sudo certbot --nginx -d api.bkdnbeauty.io.vn
+sudo certbot --nginx -d bkdnbeauty.io.vn -d www.bkdnbeauty.io.vn
+sudo certbot --nginx -d admin.bkdnbeauty.io.vn
 ```
 
 ## 5. Optional: push images to ECR

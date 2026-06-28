@@ -1,6 +1,6 @@
 Project beauty_ecommerce {
   database_type: "PostgreSQL"
-  Note: "ERD generated from BE/prisma/schema.prisma for dbdiagram.io"
+  Note: "DBML for dbdiagram.io, based on BE/prisma/schema.prisma. Some logical references are added for report readability."
 }
 
 Enum user_role {
@@ -995,10 +995,15 @@ Ref: vr_review_prompt_settings.user_id > users.id [delete: cascade]
 
 Ref: user_wallets.user_id > users.id
 Ref: user_wallet_transactions.wallet_id > user_wallets.id
+Ref: user_wallet_transactions.order_id > orders.id
 Ref: wallet_topup_requests.wallet_id > user_wallets.id
 
 Ref: seller_wallets.shop_id > shops.id
 Ref: wallet_transactions.wallet_id > seller_wallets.id
+Ref: wallet_transactions.order_id > orders.id
+Ref: platform_revenue.order_id > orders.id
+Ref: platform_revenue.shop_id > shops.id
+Ref: payout_requests.shop_id > shops.id
 Ref: payout_requests.wallet_id > seller_wallets.id
 Ref: payout_requests.bank_account_id > shop_bank_accounts.id
 Ref: shop_bank_accounts.shop_id > shops.id
@@ -1017,9 +1022,12 @@ Ref: messages.reply_to_id > messages.id
 Ref: message_reads.message_id > messages.id
 Ref: message_reads.user_id > users.id
 Ref: message_reactions.message_id > messages.id [delete: cascade]
+Ref: message_reactions.user_id > users.id
 Ref: message_media.message_id > messages.id [delete: cascade]
 Ref: chatbot_sessions.user_id > users.id [delete: set null]
 Ref: chatbot_messages.session_id > chatbot_sessions.id [delete: cascade]
+
+Ref: api_logs.user_id > users.id
 
 Ref: return_requests.order_id > orders.id
 Ref: return_requests.user_id > users.id

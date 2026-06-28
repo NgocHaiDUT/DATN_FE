@@ -16,8 +16,10 @@ import { FEATURE_CONFIGS } from "@/lib/faceFeatures";
 import { useGetProductById } from "@/features/shop/usePublicShop";
 import { resolveMediaUrl } from "@/lib/media";
 import { VrReviewDialog } from "@/components/common/VrReviewDialog";
-import { apiClient } from "@/lib/api";
-import { ENDPOINTS } from "@/constants/endpoint";
+import {
+  getVrReviewPromptStatus,
+  getVrReviewUnavailableMessage,
+} from "@/lib/vr-review";
 import { toast } from "sonner";
 
 export function ProductMakeupAR() {
@@ -41,10 +43,13 @@ export function ProductMakeupAR() {
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [isComparing, setIsComparing] = useState(false);
   const [showVrReviewDialog, setShowVrReviewDialog] = useState(false);
+  const [hasCompletedTryOn, setHasCompletedTryOn] = useState(false);
 
   const faceMeshRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const reviewPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasPromptedReviewRef = useRef(false);
 
   // Fetch product using React Query hook - handles both slug and ID
   const { data: product, isLoading, error: productError } = useGetProductById(
@@ -127,23 +132,34 @@ export function ProductMakeupAR() {
     setIsComparing(!isComparing);
   }, [isComparing]);
 
-  const openReviewDialog = useCallback(async () => {
+  const requestReviewDialog = useCallback(async () => {
     try {
-      const response: any = await apiClient(ENDPOINTS.MAKEUP.VR_REVIEW_STATUS, { method: "GET" });
-      const status = response?.data || response;
+      const status = await getVrReviewPromptStatus();
       if (status?.should_show) {
         setShowVrReviewDialog(true);
-        return;
+        return { shown: true, status };
       }
-      const nextTime = status?.next_available_at
-        ? new Date(status.next_available_at).toLocaleString("vi-VN")
-        : "";
-      toast.info(nextTime ? `Bạn có thể đánh giá lại sau ${nextTime}` : "Bạn đã đánh giá model trong hôm nay");
+      return { shown: false, status };
     } catch {
       setShowVrReviewDialog(true);
+      return { shown: true, status: null };
     }
   }, []);
 
+  const openReviewDialog = useCallback(async () => {
+    const result = await requestReviewDialog();
+    if (!result.shown && result.status) {
+      toast.info(getVrReviewUnavailableMessage(result.status));
+    }
+  }, [requestReviewDialog]);
+
+  const handleBack = useCallback(async () => {
+    if (hasCompletedTryOn) {
+      const result = await requestReviewDialog();
+      if (result.shown) return;
+    }
+    router.back();
+  }, [hasCompletedTryOn, requestReviewDialog, router]);
   // Get makeup category from product
   const getMakeupCategory = (): FeatureGroupKey | null => {
     if (!product) return null;
@@ -266,6 +282,8 @@ export function ProductMakeupAR() {
           drawFeature(ctx, landmarks, lipLower.indices, width, height, rgb, opacity);
         }
       }
+
+      setHasCompletedTryOn(true);
     },
     [selectedVariant, getMakeupCategory]
   );
@@ -285,8 +303,27 @@ export function ProductMakeupAR() {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
+      if (reviewPromptTimerRef.current) {
+        clearTimeout(reviewPromptTimerRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isCameraActive || !hasCompletedTryOn || hasPromptedReviewRef.current) return;
+
+    hasPromptedReviewRef.current = true;
+    reviewPromptTimerRef.current = setTimeout(() => {
+      requestReviewDialog();
+    }, 7000);
+
+    return () => {
+      if (reviewPromptTimerRef.current) {
+        clearTimeout(reviewPromptTimerRef.current);
+        reviewPromptTimerRef.current = null;
+      }
+    };
+  }, [hasCompletedTryOn, isCameraActive, requestReviewDialog]);
 
   // Update FaceMesh callback when onResults changes
   useEffect(() => {
@@ -356,7 +393,7 @@ export function ProductMakeupAR() {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => router.back()}
+            onClick={handleBack}
             className="mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -553,3 +590,4 @@ export function ProductMakeupAR() {
     </div>
   );
 }
+
