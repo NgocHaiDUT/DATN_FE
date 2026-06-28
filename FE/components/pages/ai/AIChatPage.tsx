@@ -17,6 +17,7 @@ import {
 import { useAIChat } from "@/features/ai/useAIChat";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { ChatbotProductCards } from "@/components/common/ChatbotProductCards";
 
 export default function AIChatPage() {
   const router = useRouter();
@@ -283,6 +284,7 @@ export default function AIChatPage() {
                       <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                         {renderMessageText(m.text)}
                       </p>
+                      {!isUser && <ChatbotProductCards products={m.products} />}
                       <p
                         className={cn(
                           "mt-2 text-[10px] text-right font-medium",

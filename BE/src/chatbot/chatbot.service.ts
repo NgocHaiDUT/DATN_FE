@@ -22,15 +22,19 @@ type ProductSearchArgs = {
 type ProductSearchResult = {
   query: string;
   count: number;
-  products: Array<{
-    id: number;
-    name: string;
-    slug: string;
-    url: string;
-    price_from: number | null;
-    brand: { id: number; name: string; slug: string } | null;
-    shop: { id: number; name: string; slug: string };
-  }>;
+  products: ChatbotRecommendedProduct[];
+};
+
+type ChatbotRecommendedProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  url: string;
+  image_url: string | null;
+  price_from: number | null;
+  compare_at_price: number | null;
+  brand: { id: number; name: string; slug: string } | null;
+  shop: { id: number; name: string; slug: string };
 };
 
 @Injectable()
@@ -90,7 +94,7 @@ export class ChatbotService {
           dto.shopId
             ? `Only recommend products from shop id ${dto.shopId} unless the user asks more broadly.`
             : '',
-          `Product URLs must use this storefront base URL: ${this.frontendUrl}.`,
+          'Do not paste product URLs in the chat text. Product cards will be shown separately by the app.',
         ]
           .filter(Boolean)
           .join('\n'),
@@ -108,18 +112,25 @@ export class ChatbotService {
       }
 
       const assistantText = await this.getLatestAssistantText(threadId);
-      const botText = await this.ensureProductLinks(
+      const recommendedProducts = await this.collectRecommendedProducts(
         assistantText,
         dto.message,
         dto.shopId,
         productSearchResults,
       );
+      const botText =
+        this.stripProductLinks(assistantText) ||
+        (recommendedProducts.length > 0
+          ? 'Mình tìm được một số sản phẩm phù hợp cho bạn:'
+          : assistantText.trim());
 
       await this.prisma.chatbot_messages.create({
         data: {
           session_id: session.id,
           sender: 'bot',
           content: botText,
+          products:
+            recommendedProducts.length > 0 ? recommendedProducts : undefined,
         },
       });
 
@@ -134,6 +145,7 @@ export class ChatbotService {
         openaiThreadId: threadId,
         chatId: run.id,
         botResponse: botText,
+        recommendedProducts,
       };
     } catch (err) {
       console.error('OpenAI Assistants API Error:', err);
@@ -192,7 +204,7 @@ export class ChatbotService {
       'Tra loi bang tieng Viet tu nhien, ngan gon, hoi them neu thieu thong tin ve loai da, nhu cau, ngan sach hoac tone mau.',
       'Khi nguoi dung hoi ve san pham, goi y mua hang, so sanh, routine co san pham, hoac "nen mua gi", bat buoc goi tool search_products.',
       'Chi de xuat san pham co trong ket qua tool. Khong duoc tu bia ten, gia, ton kho, link hay khuyen mai.',
-      'Moi san pham duoc de xuat nen co ten, gia tham khao neu co, ly do phu hop, va URL day du.',
+      'Moi san pham duoc de xuat nen co ten, gia tham khao neu co, va ly do phu hop. Khong viet URL san pham trong cau tra loi.',
       'Neu khong tim thay san pham phu hop, noi ro la chua tim thay trong shop va goi y tu khoa khac.',
       'Khong dua tu van y khoa chan doan. Neu nguoi dung co kich ung, mun nang, viem da, hay khuyen gap bac si da lieu.',
     ].join('\n');
@@ -204,7 +216,7 @@ export class ChatbotService {
       function: {
         name: 'search_products',
         description:
-          'Search approved, published, in-stock products from the ecommerce database and return storefront URLs.',
+          'Search approved, published, in-stock products from the ecommerce database for product cards.',
         parameters: {
           type: 'object',
           properties: {
@@ -367,16 +379,12 @@ export class ChatbotService {
     return JSON.stringify(result);
   }
 
-  private async ensureProductLinks(
+  private async collectRecommendedProducts(
     assistantText: string,
     userMessage: string,
     shopId: number | undefined,
     productSearchResults: ProductSearchResult[],
-  ) {
-    if (this.hasProductLink(assistantText)) {
-      return assistantText;
-    }
-
+  ): Promise<ChatbotRecommendedProduct[]> {
     let products = this.uniqueProducts(
       productSearchResults.flatMap((result) => result.products),
     );
@@ -394,34 +402,30 @@ export class ChatbotService {
     }
 
     if (products.length === 0) {
-      return assistantText;
+      return [];
     }
 
-    const productLines = products.slice(0, 4).map((product, index) => {
-      const brandName = product.brand?.name ? ` - ${product.brand.name}` : '';
-      const price = product.price_from
-        ? ` (${this.formatVnd(product.price_from)})`
-        : '';
-      return `${index + 1}. ${product.name}${brandName}${price}: ${product.url}`;
-    });
-
-    return [
-      assistantText.trim(),
-      '',
-      'San pham phu hop tren san:',
-      ...productLines,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    return products.slice(0, 4);
   }
 
-  private hasProductLink(text: string) {
-    return /(?:https?:\/\/[^\s)]+)?\/product\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+/.test(
-      text,
-    );
+  private stripProductLinks(text: string) {
+    return text
+      .replace(
+        /\[([^\]]+)\]\((?:https?:\/\/[^\s)]+)?\/product\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+\)/g,
+        '$1',
+      )
+      .replace(
+        /(?:https?:\/\/[^\s)]+)?\/product\/[A-Za-z0-9._~:/?#[\]@!$&'()*+,;=%-]+/g,
+        '',
+      )
+      .split('\n')
+      .map((line) => line.replace(/\s+$/g, ''))
+      .filter((line) => !/^\s*(?:[-*:|]+)?\s*$/.test(line))
+      .join('\n')
+      .trim();
   }
 
-  private uniqueProducts(products: ProductSearchResult['products']) {
+  private uniqueProducts(products: ChatbotRecommendedProduct[]) {
     const seen = new Set<number>();
     return products.filter((product) => {
       if (seen.has(product.id)) return false;
@@ -459,14 +463,6 @@ export class ChatbotService {
       'tham',
     ];
     return intentTerms.some((term) => normalized.includes(term));
-  }
-
-  private formatVnd(value: number) {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      maximumFractionDigits: 0,
-    }).format(value);
   }
 
   private async searchProducts(
@@ -561,6 +557,9 @@ export class ChatbotService {
             (item) => item.category.name,
           ),
           price_from: firstVariant ? Number(firstVariant.price) : null,
+          compare_at_price: firstVariant?.compare_at_price
+            ? Number(firstVariant.compare_at_price)
+            : null,
           avg_rating: Number(product.avg_rating || 0),
           review_count: product.review_count,
           variants: product.product_variants.map((variant) => ({

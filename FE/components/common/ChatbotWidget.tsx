@@ -8,11 +8,12 @@ import { useAIChat } from "@/features/ai/useAIChat";
 import { useAuthStore } from "@/stores/auth.store";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { ChatbotProductCards } from "@/components/common/ChatbotProductCards";
 
 const suggestedQuestions = [
-  "Tu van kem chong nang cho da dau",
-  "Da kho nen dung san pham nao?",
-  "Goi y son moi di hoc",
+  "Tư vấn kem chống nắng cho da dầu",
+  "Da khô nên dùng sản phẩm nào?",
+  "Gợi ý son mới đi học",
 ];
 
 function renderMessageText(text: string) {
@@ -95,7 +96,7 @@ export function ChatbotWidget() {
               </div>
               <div>
                 <p className="text-sm font-semibold">MakeCare AI</p>
-                <p className="text-xs text-white/80">Tu van mua hang</p>
+                <p className="text-xs text-white/80">Tư vấn mua hàng</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -105,7 +106,7 @@ export function ChatbotWidget() {
                     type="button"
                     onClick={() => setShowSessions((value) => !value)}
                     className="rounded-lg p-2 text-white/90 transition hover:bg-white/15"
-                    title="Lich su chat"
+                    title="Lịch sử chat"
                   >
                     <History className="h-4 w-4" />
                   </button>
@@ -116,7 +117,7 @@ export function ChatbotWidget() {
                       setShowSessions(false);
                     }}
                     className="rounded-lg p-2 text-white/90 transition hover:bg-white/15"
-                    title="Chat moi"
+                    title="Chat mới"
                   >
                     <MessageSquarePlus className="h-4 w-4" />
                   </button>
@@ -126,7 +127,7 @@ export function ChatbotWidget() {
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="rounded-lg p-2 text-white/90 transition hover:bg-white/15"
-                title="Dong"
+                title="Đóng"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -136,7 +137,7 @@ export function ChatbotWidget() {
           {showSessions && accessToken && (
             <div className="max-h-44 overflow-y-auto border-b border-gray-100 bg-gray-50 p-3">
               {sessions.length === 0 ? (
-                <p className="px-2 py-4 text-center text-sm text-gray-500">Chua co lich su chat</p>
+                <p className="px-2 py-4 text-center text-sm text-gray-500">Chưa có lịch sử chat</p>
               ) : (
                 <div className="space-y-2">
                   {sessions.map((session) => (
@@ -154,7 +155,7 @@ export function ChatbotWidget() {
                           : "border-gray-200 bg-white text-gray-700 hover:border-pink-200"
                       )}
                     >
-                      <span className="block truncate font-medium">{session.title || "Cuoc tro chuyen"}</span>
+                      <span className="block truncate font-medium">{session.title || "Cuộc trò chuyện"}</span>
                       <span className="text-xs text-gray-400">
                         {new Date(session.updated_at).toLocaleDateString("vi-VN")}
                       </span>
@@ -171,16 +172,16 @@ export function ChatbotWidget() {
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pink-100 text-pink-600">
                   <LogIn className="h-7 w-7" />
                 </div>
-                <p className="text-sm font-semibold text-gray-900">Dang nhap de chat voi MakeCare AI</p>
+                <p className="text-sm font-semibold text-gray-900">Đăng nhập để chat với MakeCare AI</p>
                 <p className="mt-2 text-sm text-gray-500">
-                  Bot se luu lich su va goi y san pham phu hop tu cua hang.
+                  Bot sẽ lưu lịch sử và gợi ý sản phẩm phù hợp từ cửa hàng.
                 </p>
                 <button
                   type="button"
                   onClick={handleLogin}
                   className="mt-5 rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
                 >
-                  Dang nhap
+                  Đăng nhập
                 </button>
               </div>
             ) : isLoading ? (
@@ -193,9 +194,9 @@ export function ChatbotWidget() {
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg">
                     <Bot className="h-8 w-8" />
                   </div>
-                  <p className="text-base font-semibold text-gray-900">Can mua san pham gi hom nay?</p>
+                  <p className="text-base font-semibold text-gray-900">Cần mua sản phẩm gì hôm nay?</p>
                   <p className="mt-2 text-sm text-gray-500">
-                    Hoi ve nhu cau, loai da, ngan sach hoac tone mau de nhan goi y kem link san pham.
+                    Hỏi về nhu cầu, loại da, ngân sách hoặc tone màu để nhận gợi ý sản phẩm phù hợp.
                   </p>
                 </div>
                 <div className="mt-5 space-y-2">
@@ -230,6 +231,7 @@ export function ChatbotWidget() {
                       )}
                     >
                       <p className="whitespace-pre-wrap break-words">{renderMessageText(message.text)}</p>
+                      {!isUser && <ChatbotProductCards products={message.products} compact />}
                     </div>
                     {isUser && (
                       <div className="mt-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white">
@@ -263,7 +265,7 @@ export function ChatbotWidget() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 disabled={!accessToken || isTyping}
-                placeholder="Nhap cau hoi ve san pham..."
+                placeholder="Nhập câu hỏi về sản phẩm..."
                 rows={1}
                 className="max-h-24 min-h-10 resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
                 onKeyDown={(event) => {
@@ -278,13 +280,13 @@ export function ChatbotWidget() {
                 onClick={handleSend}
                 disabled={!input.trim() || !accessToken || isTyping}
                 className="mb-0.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 p-2 text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-                title="Gui"
+                title="Gửi"
               >
                 <Send className="h-4 w-4" />
               </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-gray-400">
-              Goi y san pham chi mang tinh tham khao.
+              Gợi ý sản phẩm chỉ mang tính tham khảo.
             </p>
           </div>
         </div>

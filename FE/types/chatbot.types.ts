@@ -12,7 +12,28 @@ export interface ChatbotMessage {
   session_id: number;
   sender: "user" | "bot";
   content: string;
+  products?: ChatbotRecommendedProduct[] | null;
   created_at: string;
+}
+
+export interface ChatbotRecommendedProduct {
+  id: number;
+  name: string;
+  slug: string;
+  url: string;
+  image_url: string | null;
+  price_from: number | null;
+  compare_at_price?: number | null;
+  brand?: {
+    id: number;
+    name: string;
+    slug: string;
+  } | null;
+  shop?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
 }
 
 export interface SendMessageRequest {
@@ -29,6 +50,7 @@ export interface SendMessageResponse {
     openaiThreadId?: string | null;
     chatId: string;
     botResponse: string;
+    recommendedProducts?: ChatbotRecommendedProduct[];
   };
 }
 

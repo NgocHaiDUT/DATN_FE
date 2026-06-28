@@ -949,6 +949,7 @@ model chatbot_messages {
   session_id Int
   sender     String
   content    String
+  products   Json?
   created_at DateTime @default(now())
 
   session chatbot_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)

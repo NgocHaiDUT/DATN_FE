@@ -7,6 +7,7 @@ import {
   getChatbotMessages,
 } from "@/services/chatbot.service";
 import type { ChatbotSession } from "@/types/chatbot.types";
+import type { ChatbotRecommendedProduct } from "@/types/chatbot.types";
 
 export type ChatSender = "user" | "bot";
 
@@ -15,6 +16,7 @@ export interface AIChatMessage {
   text: string;
   sender: ChatSender;
   timestamp: Date;
+  products?: ChatbotRecommendedProduct[];
 }
 
 // Welcome message removed - UI shows welcome screen instead when messages.length === 0
@@ -57,6 +59,7 @@ export function useAIChat(options?: { enabled?: boolean; shopId?: number }) {
             text: msg.content,
             sender: msg.sender,
             timestamp: new Date(msg.created_at),
+            products: msg.products ?? undefined,
           }));
 
           setMessages(converted);
@@ -99,6 +102,7 @@ export function useAIChat(options?: { enabled?: boolean; shopId?: number }) {
           text: msg.content,
           sender: msg.sender,
           timestamp: new Date(msg.created_at),
+          products: msg.products ?? undefined,
         }));
 
         setMessages(converted);
@@ -153,6 +157,7 @@ export function useAIChat(options?: { enabled?: boolean; shopId?: number }) {
           text: res.data.botResponse,
           sender: "bot",
           timestamp: new Date(),
+          products: res.data.recommendedProducts,
         };
 
         setMessages((prev) => [...prev, botMsg]);
