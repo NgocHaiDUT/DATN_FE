@@ -611,12 +611,23 @@ export class MakeupService {
 
   async getVrReviewPromptStatus(userId: number) {
     const now = new Date();
-    const [setting, latestReview] = await Promise.all([
+    const { start, end } = this.getBangkokDayRange(now);
+    const [setting, latestReview, todayReview] = await Promise.all([
       this.prisma.vr_review_prompt_settings.findUnique({
         where: { user_id: userId },
       }),
       this.prisma.vr_model_reviews.findFirst({
         where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+      }),
+      this.prisma.vr_model_reviews.findFirst({
+        where: {
+          user_id: userId,
+          created_at: {
+            gte: start,
+            lt: end,
+          },
+        },
         orderBy: { created_at: 'desc' },
       }),
     ]);
@@ -630,24 +641,35 @@ export class MakeupService {
       };
     }
 
-    if (latestReview) {
-      const nextReviewAt = new Date(
-        latestReview.created_at.getTime() + 24 * 60 * 60 * 1000,
-      );
-      if (nextReviewAt > now) {
-        return {
-          should_show: false,
-          reason: 'review_cooldown',
-          last_review_at: latestReview.created_at,
-          next_available_at: nextReviewAt,
-        };
-      }
+    if (todayReview) {
+      return {
+        should_show: false,
+        reason: 'reviewed_today',
+        last_review_at: todayReview.created_at,
+        next_available_at: end,
+      };
     }
 
     return {
       should_show: true,
       reason: 'available',
       last_review_at: latestReview?.created_at ?? null,
+    };
+  }
+
+  private getBangkokDayRange(date: Date) {
+    const bangkokOffsetMs = 7 * 60 * 60 * 1000;
+    const shifted = new Date(date.getTime() + bangkokOffsetMs);
+    const start =
+      Date.UTC(
+        shifted.getUTCFullYear(),
+        shifted.getUTCMonth(),
+        shifted.getUTCDate(),
+      ) - bangkokOffsetMs;
+
+    return {
+      start: new Date(start),
+      end: new Date(start + 24 * 60 * 60 * 1000),
     };
   }
 
@@ -666,7 +688,11 @@ export class MakeupService {
     }
 
     const status = await this.getVrReviewPromptStatus(userId);
-    if (!status.should_show && status.reason === 'review_cooldown') {
+    if (
+      !status.should_show &&
+      (status.reason === 'reviewed_today' ||
+        status.reason === 'review_cooldown')
+    ) {
       throw new BadRequestException('You can review the VR model once per day');
     }
 

@@ -28,6 +28,10 @@ import { VrReviewDialog } from "@/components/common/VrReviewDialog";
 import { apiClient } from "@/lib/api";
 import { ENDPOINTS } from "@/constants/endpoint";
 import { toast } from "sonner";
+import {
+  getVrReviewPromptStatus,
+  getVrReviewUnavailableMessage,
+} from "@/lib/vr-review";
 import { FeatureGroupKey, FEATURE_CONFIGS, FEATURE_GROUPS } from "@/lib/faceFeatures";
 import {
   loadMediaPipeScripts,
@@ -814,21 +818,16 @@ export function TryOnTesterPage() {
 
   const openReviewDialog = useCallback(async () => {
     try {
-      const response: any = await apiClient(ENDPOINTS.MAKEUP.VR_REVIEW_STATUS, { method: "GET" });
-      const status = response?.data || response;
+      const status = await getVrReviewPromptStatus();
       if (status?.should_show) {
         setShowVrReviewDialog(true);
         return;
       }
-      const nextTime = status?.next_available_at
-        ? new Date(status.next_available_at).toLocaleString("vi-VN")
-        : "";
-      toast.info(nextTime ? `Bạn có thể đánh giá lại sau ${nextTime}` : "Bạn đã đánh giá model trong hôm nay");
+      toast.info(getVrReviewUnavailableMessage(status));
     } catch {
       setShowVrReviewDialog(true);
     }
   }, []);
-
   const getCurrentImage = () => {
     switch (mode) {
       case "sample":
@@ -1497,4 +1496,5 @@ export function TryOnTesterPage() {
     </div>
   );
 }
+
 

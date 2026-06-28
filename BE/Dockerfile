@@ -27,11 +27,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl \
     && rm -rf /var/lib/apt/lists/*
 
+
 COPY package*.json ./
+COPY --from=build /app/src/data-init/*.json ./src/data-init/
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/src/main.js"]

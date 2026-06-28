@@ -193,7 +193,7 @@ export class CouponService {
       where: { code: this.vrReviewRewardCode },
       create: {
         code: this.vrReviewRewardCode,
-        description: 'Voucher giam 30k phi ship sau khi danh gia VR Makeup',
+        description: 'Voucher giảm 30k phí ship sau khi đánh giá VR Makeup',
         discount_type: 'fixed',
         discount_value: 30000,
         voucher_type: 'shipping',
@@ -201,7 +201,7 @@ export class CouponService {
         starts_at: now,
       },
       update: {
-        description: 'Voucher giam 30k phi ship sau khi danh gia VR Makeup',
+        description: 'Voucher giảm 30k phí ship sau khi đánh giá VR Makeup',
         discount_type: 'fixed',
         discount_value: 30000,
         voucher_type: 'shipping',

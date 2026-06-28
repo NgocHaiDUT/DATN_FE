@@ -26,6 +26,7 @@ import { apiClient } from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { ENDPOINTS } from '@/constants/endpoint'
 import { VrReviewDialog } from '@/components/common/VrReviewDialog'
+import { getVrReviewPromptStatus } from '@/lib/vr-review'
 import {
   drawEyebrow,
   drawMascara,
@@ -1712,8 +1713,8 @@ export default function AIStudioMakeup() {
     let shouldShowReviewPrompt = false
     if (currentScreen === 'makeup' && hasCompletedTryOn) {
       try {
-        const response: any = await apiClient(ENDPOINTS.MAKEUP.VR_REVIEW_STATUS, { method: 'GET' })
-        shouldShowReviewPrompt = Boolean(response?.data?.should_show ?? response?.should_show)
+        const status = await getVrReviewPromptStatus()
+        shouldShowReviewPrompt = Boolean(status?.should_show)
       } catch {
         shouldShowReviewPrompt = false
       }

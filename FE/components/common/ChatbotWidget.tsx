@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 const suggestedQuestions = [
-  "Tu van kem chong nang cho da dau",
-  "Da kho nen dung san pham nao?",
-  "Goi y son moi di hoc",
+  "Tư vấn kem chống nắng cho da dầu",
+  "Da khô nên dùng sản phẩm nào?",
+  "Gợi ý son trong tầm giá 500k trở xuống",
 ];
 
 function renderMessageText(text: string) {
@@ -95,7 +95,7 @@ export function ChatbotWidget() {
               </div>
               <div>
                 <p className="text-sm font-semibold">MakeCare AI</p>
-                <p className="text-xs text-white/80">Tu van mua hang</p>
+                <p className="text-xs text-white/80">Tư vấn mua hàng</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -263,7 +263,7 @@ export function ChatbotWidget() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 disabled={!accessToken || isTyping}
-                placeholder="Nhap cau hoi ve san pham..."
+                placeholder="Nhập câu hỏi về sản phẩm..."
                 rows={1}
                 className="max-h-24 min-h-10 resize-none border-0 bg-transparent p-0 text-sm focus-visible:ring-0"
                 onKeyDown={(event) => {
@@ -284,7 +284,7 @@ export function ChatbotWidget() {
               </button>
             </div>
             <p className="mt-2 text-center text-[11px] text-gray-400">
-              Goi y san pham chi mang tinh tham khao.
+              Gợi ý sản phẩm chỉ mang tính tham khảo.
             </p>
           </div>
         </div>
