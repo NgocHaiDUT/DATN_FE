@@ -13,7 +13,8 @@ import { ChatbotProductCards } from "@/components/common/ChatbotProductCards";
 const suggestedQuestions = [
   "Tư vấn kem chống nắng cho da dầu",
   "Da khô nên dùng sản phẩm nào?",
-  "Gợi ý son mới đi học",
+  "Gợi ý son trong tầm giá 500k trở xuống",
+
 ];
 
 function renderMessageText(text: string) {
