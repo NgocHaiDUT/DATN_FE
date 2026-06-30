@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Camera, Loader2, GitCompare, ArrowLeft, MessageSquareText } from "lucide-react";
+import { Camera, Loader2, GitCompare, ArrowLeft, MessageSquareText, Minus, Plus, ShoppingCart, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -21,6 +21,8 @@ import {
   getVrReviewUnavailableMessage,
 } from "@/lib/vr-review";
 import { toast } from "sonner";
+import { useCart } from "@/features/shop/useCart";
+import { useAuthStore } from "@/stores/auth.store";
 
 export function ProductMakeupAR() {
   const router = useRouter();
@@ -44,6 +46,7 @@ export function ProductMakeupAR() {
   const [isComparing, setIsComparing] = useState(false);
   const [showVrReviewDialog, setShowVrReviewDialog] = useState(false);
   const [hasCompletedTryOn, setHasCompletedTryOn] = useState(false);
+  const [quantity, setQuantity] = useState(1);
 
   const faceMeshRef = useRef<any>(null);
   const cameraRef = useRef<any>(null);
@@ -55,11 +58,15 @@ export function ProductMakeupAR() {
   const { data: product, isLoading, error: productError } = useGetProductById(
     productSlug && productSlug !== 'undefined' ? productSlug : ''
   );
+  const user = useAuthStore((state) => state.user);
+  const { addToCart, isAdding: isAddingToCart } = useCart();
 
   // Get selected variant or default
   const selectedVariant = selectedVariantId && product?.variants
     ? product.variants.find((v: any) => v.id === selectedVariantId)
     : null;
+  const selectedVariantStock = selectedVariant ? Number((selectedVariant as any).stock || 0) : 0;
+  const canPurchase = Boolean(product && selectedVariant && selectedVariantStock > 0);
 
   // Auto-select first variant when product loads
   useEffect(() => {
@@ -160,6 +167,57 @@ export function ProductMakeupAR() {
     }
     router.back();
   }, [hasCompletedTryOn, requestReviewDialog, router]);
+
+  const handleQuantityChange = useCallback((delta: number) => {
+    setQuantity((current) => Math.max(1, Math.min(99, current + delta)));
+  }, []);
+
+  const handleAddToCart = useCallback(() => {
+    if (!product) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (!selectedVariant) {
+      toast.error("Vui lòng chọn màu sản phẩm trước khi thêm vào giỏ");
+      return;
+    }
+    if (selectedVariantStock <= 0) {
+      toast.error("Phiên bản này đã hết hàng");
+      return;
+    }
+
+    addToCart({
+      productId: Number(product.id),
+      quantity,
+      variantId: Number((selectedVariant as any).id),
+    });
+  }, [addToCart, product, quantity, router, selectedVariant, selectedVariantStock, user]);
+
+  const handleBuyNow = useCallback(() => {
+    if (!product) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (!selectedVariant) {
+      toast.error("Vui lòng chọn màu sản phẩm trước khi mua");
+      return;
+    }
+    if (selectedVariantStock <= 0) {
+      toast.error("Phiên bản này đã hết hàng");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      buyNow: "true",
+      productId: String(product.id),
+      quantity: String(quantity),
+      variantId: String((selectedVariant as any).id),
+    });
+    router.push(`/checkout?${params.toString()}`);
+  }, [product, quantity, router, selectedVariant, selectedVariantStock, user]);
+
   // Get makeup category from product
   const getMakeupCategory = (): FeatureGroupKey | null => {
     if (!product) return null;
@@ -575,6 +633,82 @@ export function ProductMakeupAR() {
                     </div>
                   </div>
 
+                  <div className="space-y-4 rounded-xl border border-pink-100 bg-pink-50/50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700">Màu đang chọn</p>
+                        <p className="text-base font-bold text-gray-900">
+                          {(selectedVariant as any)?.name || "Chưa chọn màu"}
+                        </p>
+                        {selectedVariant ? (
+                          <p className="text-sm text-gray-600">
+                            Còn {selectedVariantStock} sản phẩm
+                          </p>
+                        ) : (
+                          <p className="text-sm text-red-500">Chọn một màu có thể thử để mua</p>
+                        )}
+                      </div>
+                      {selectedVariant?.shade_hex ? (
+                        <div
+                          className="h-11 w-11 shrink-0 rounded-full border-4 border-white shadow"
+                          style={{ backgroundColor: selectedVariant.shade_hex }}
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-gray-700">Số lượng</span>
+                      <div className="flex h-10 items-center rounded-full border border-gray-200 bg-white">
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(-1)}
+                          className="flex h-10 w-10 items-center justify-center rounded-l-full text-gray-600 hover:bg-gray-50"
+                          aria-label="Giảm số lượng"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-10 text-center text-sm font-semibold">{quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleQuantityChange(1)}
+                          className="flex h-10 w-10 items-center justify-center rounded-r-full text-gray-600 hover:bg-gray-50"
+                          aria-label="Tăng số lượng"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Button
+                        onClick={handleAddToCart}
+                        disabled={!canPurchase || isAddingToCart}
+                        className="h-11 bg-slate-900 text-white hover:bg-slate-800"
+                      >
+                        {isAddingToCart ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                        )}
+                        Thêm vào giỏ hàng
+                      </Button>
+                      <Button
+                        onClick={handleBuyNow}
+                        disabled={!canPurchase}
+                        className="h-11 bg-pink-600 text-white hover:bg-pink-700"
+                      >
+                        <Zap className="mr-2 h-4 w-4" />
+                        Mua ngay
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push("/cart")}
+                        className="h-10"
+                      >
+                        Xem giỏ hàng
+                      </Button>
+                    </div>
+                  </div>
 
                 </>
               )}

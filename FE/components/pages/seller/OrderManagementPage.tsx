@@ -35,7 +35,6 @@ export function OrderManagementPage() {
   const {
     data: ordersData,
     isLoading,
-    refetch,
   } = useShopOrders(shop?.id, {
     page: pagination.page,
     limit: pagination.limit,
@@ -79,14 +78,18 @@ export function OrderManagementPage() {
         throw new Error(result?.message || t('seller.orders.updateError'));
       }
       alert(t('seller.orders.updateSuccess'));
-      const { data: updatedData } = await refetch();
 
       // If the modal is open for this order, update its data
-      if (selectedOrder && selectedOrder.id === orderId && updatedData?.orders) {
-        const updatedOrder = updatedData.orders.find((o: any) => o.id === orderId);
-        if (updatedOrder) {
-          setSelectedOrder(updatedOrder);
-        }
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                status: newStatus,
+                updated_at: new Date().toISOString(),
+              }
+            : prev
+        );
       }
     } catch (error: any) {
       alert(error?.response?.data?.message || error?.message || t('seller.orders.updateError'));
