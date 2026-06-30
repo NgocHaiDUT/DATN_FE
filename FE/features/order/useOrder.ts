@@ -74,9 +74,35 @@ export function useCancelOrder() {
 
 export function useConfirmOrderReceived() {
     const queryClient = useQueryClient();
+    const markOrderDelivered = (order: any, orderId: number) => {
+        if (!order || order.id !== orderId) return order;
+        return {
+            ...order,
+            status: "delivered",
+            payment_status: "paid",
+            shipments: Array.isArray(order.shipments)
+                ? order.shipments.map((shipment: any) => ({
+                    ...shipment,
+                    status: "delivered",
+                    delivered_at: shipment.delivered_at || new Date().toISOString(),
+                }))
+                : order.shipments,
+        };
+    };
     return useMutation({
         mutationFn: confirmOrderReceived,
         onSuccess: (_, orderId) => {
+            queryClient.setQueriesData({ queryKey: ["orders"] }, (old: any) => {
+                if (!Array.isArray(old)) return old;
+                return old.map((order: any) => markOrderDelivered(order, orderId));
+            });
+            queryClient.setQueryData(["order", orderId], (old: any) => {
+                if (!old) return old;
+                if (old.order) {
+                    return { ...old, order: markOrderDelivered(old.order, orderId) };
+                }
+                return markOrderDelivered(old, orderId);
+            });
             queryClient.invalidateQueries({ queryKey: ["orders"] });
             queryClient.invalidateQueries({ queryKey: ["order", orderId] });
         },
@@ -230,4 +256,3 @@ export function useInitiateTopup() {
         },
     });
 }
-

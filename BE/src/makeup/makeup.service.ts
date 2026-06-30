@@ -11,6 +11,8 @@ import { CouponService } from '../coupon/coupon.service';
 
 @Injectable()
 export class MakeupService {
+  private readonly vrReviewCooldownMs = 10 * 60 * 1000;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponService: CouponService,
@@ -611,23 +613,12 @@ export class MakeupService {
 
   async getVrReviewPromptStatus(userId: number) {
     const now = new Date();
-    const { start, end } = this.getBangkokDayRange(now);
-    const [setting, latestReview, todayReview] = await Promise.all([
+    const [setting, latestReview] = await Promise.all([
       this.prisma.vr_review_prompt_settings.findUnique({
         where: { user_id: userId },
       }),
       this.prisma.vr_model_reviews.findFirst({
         where: { user_id: userId },
-        orderBy: { created_at: 'desc' },
-      }),
-      this.prisma.vr_model_reviews.findFirst({
-        where: {
-          user_id: userId,
-          created_at: {
-            gte: start,
-            lt: end,
-          },
-        },
         orderBy: { created_at: 'desc' },
       }),
     ]);
@@ -641,13 +632,18 @@ export class MakeupService {
       };
     }
 
-    if (todayReview) {
-      return {
-        should_show: false,
-        reason: 'reviewed_today',
-        last_review_at: todayReview.created_at,
-        next_available_at: end,
-      };
+    if (latestReview) {
+      const nextAvailableAt = new Date(
+        latestReview.created_at.getTime() + this.vrReviewCooldownMs,
+      );
+      if (nextAvailableAt > now) {
+        return {
+          should_show: false,
+          reason: 'review_cooldown',
+          last_review_at: latestReview.created_at,
+          next_available_at: nextAvailableAt,
+        };
+      }
     }
 
     return {
@@ -657,19 +653,31 @@ export class MakeupService {
     };
   }
 
-  private getBangkokDayRange(date: Date) {
-    const bangkokOffsetMs = 7 * 60 * 60 * 1000;
-    const shifted = new Date(date.getTime() + bangkokOffsetMs);
-    const start =
-      Date.UTC(
-        shifted.getUTCFullYear(),
-        shifted.getUTCMonth(),
-        shifted.getUTCDate(),
-      ) - bangkokOffsetMs;
+  private async findExistingVrReviewVoucher(userId: number) {
+    return this.prisma.user_vouchers.findFirst({
+      where: {
+        user_id: userId,
+        OR: [
+          { source: 'vr_review' },
+          { reward_reviews: { some: { user_id: userId } } },
+        ],
+      },
+      include: { coupon: true },
+      orderBy: { created_at: 'asc' },
+    });
+  }
 
+  private toVrReviewVoucherPayload(voucher: any) {
+    if (!voucher) return null;
     return {
-      start: new Date(start),
-      end: new Date(start + 24 * 60 * 60 * 1000),
+      id: voucher.id,
+      expires_at: voucher.expires_at,
+      coupon: {
+        code: voucher.coupon.code,
+        discount_type: voucher.coupon.discount_type,
+        discount_value: Number(voucher.coupon.discount_value),
+        voucher_type: voucher.coupon.voucher_type || 'shipping',
+      },
     };
   }
 
@@ -688,16 +696,17 @@ export class MakeupService {
     }
 
     const status = await this.getVrReviewPromptStatus(userId);
-    if (
-      !status.should_show &&
-      (status.reason === 'reviewed_today' ||
-        status.reason === 'review_cooldown')
-    ) {
-      throw new BadRequestException('You can review the VR model once per day');
+    if (!status.should_show && status.reason === 'review_cooldown') {
+      throw new BadRequestException(
+        'You can review the VR model every 10 minutes',
+      );
     }
 
-    const rewardVoucher =
-      await this.couponService.grantVrReviewShippingVoucher(userId);
+    const existingRewardVoucher =
+      await this.findExistingVrReviewVoucher(userId);
+    const rewardVoucher = existingRewardVoucher
+      ? null
+      : await this.couponService.grantVrReviewShippingVoucher(userId);
     const reviewContent = JSON.stringify({
       source: options?.source || 'prompt',
       aspects: options?.aspects || {},
@@ -709,7 +718,7 @@ export class MakeupService {
         user_id: userId,
         rating,
         content: reviewContent,
-        reward_voucher_id: rewardVoucher.id,
+        reward_voucher_id: rewardVoucher?.id ?? null,
       },
     });
 
@@ -722,27 +731,23 @@ export class MakeupService {
     return {
       success: true,
       review,
-      voucher: {
-        id: rewardVoucher.id,
-        expires_at: rewardVoucher.expires_at,
-        coupon: {
-          code: rewardVoucher.coupon.code,
-          discount_type: rewardVoucher.coupon.discount_type,
-          discount_value: Number(rewardVoucher.coupon.discount_value),
-          voucher_type: rewardVoucher.coupon.voucher_type || 'shipping',
-        },
-      },
+      voucher: this.toVrReviewVoucherPayload(rewardVoucher),
+      voucher_already_granted: Boolean(existingRewardVoucher),
+      existing_voucher: this.toVrReviewVoucherPayload(existingRewardVoucher),
     };
   }
 
-  async snoozeVrReviewPrompt(userId: number, days: number) {
+  async snoozeVrReviewPrompt(userId: number, days?: number, minutes?: number) {
+    const normalizedMinutes = Number(minutes);
     const allowedDays = [1, 7, 30];
     const normalizedDays = allowedDays.includes(Number(days))
       ? Number(days)
       : 1;
-    const snoozeUntil = new Date(
-      Date.now() + normalizedDays * 24 * 60 * 60 * 1000,
-    );
+    const snoozeMs =
+      Number.isFinite(normalizedMinutes) && normalizedMinutes > 0
+        ? normalizedMinutes * 60 * 1000
+        : normalizedDays * 24 * 60 * 60 * 1000;
+    const snoozeUntil = new Date(Date.now() + snoozeMs);
     const setting = await this.prisma.vr_review_prompt_settings.upsert({
       where: { user_id: userId },
       create: { user_id: userId, snooze_until: snoozeUntil },

@@ -1487,19 +1487,18 @@ export class OrderService {
         await this.createGhnOrderForExistingOrder(orderId);
       }
 
-      // When delivered: mark COD payment as paid + settle commission
-      if (status === 'delivered') {
-        if (currentOrder.payment_status === 'unpaid') {
+      await this.prisma.$transaction(async (tx) => {
+        if (
+          status === 'delivered' &&
+          currentOrder.payment_status === 'unpaid'
+        ) {
           // COD: cash was collected on delivery
-          await this.prisma.payments.updateMany({
+          await tx.payments.updateMany({
             where: { order_id: orderId, status: { in: ['unpaid', 'pending'] } },
             data: { status: 'paid' },
           });
         }
-        this.walletService.settleOrder(orderId).catch(() => {});
-      }
 
-      await this.prisma.$transaction(async (tx) => {
         await tx.orders.update({
           where: { id: orderId },
           data: {
@@ -1518,6 +1517,10 @@ export class OrderService {
             where: { order_id: orderId },
             data: { status: 'refunded' },
           });
+        }
+
+        if (status === 'delivered') {
+          await this.walletService.settleOrderInTransaction(tx, orderId);
         }
       });
 
@@ -1604,9 +1607,9 @@ export class OrderService {
             delivered_at: new Date(),
           },
         });
-      });
 
-      this.walletService.settleOrder(orderId).catch(() => {});
+        await this.walletService.settleOrderInTransaction(tx, orderId);
+      });
       this.sendStatusUpdateEmail(orderId, 'delivered');
 
       return {

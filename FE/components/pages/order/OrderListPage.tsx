@@ -84,6 +84,9 @@ export default function OrderListPage() {
         if (!confirm("Bạn xác nhận đã nhận được hàng?")) return;
         try {
             await confirmReceivedMutation.mutateAsync(orderId);
+            if (status === "shipped") {
+                setStatus("delivered");
+            }
             toast.success("Đã xác nhận nhận hàng. Bạn có thể đánh giá sản phẩm.");
         } catch (error: any) {
             toast.error(error.message || "Không thể xác nhận nhận hàng");
@@ -106,7 +109,7 @@ export default function OrderListPage() {
                     </Button>
                 </div>
 
-                <Tabs defaultValue="all" className="mb-8" onValueChange={setStatus}>
+                <Tabs value={status} className="mb-8" onValueChange={setStatus}>
                     <TabsList className="bg-white p-1 h-auto rounded-full shadow-sm border border-slate-100 flex-wrap justify-center sm:justify-start">
                         {ORDER_STATUSES.map((s) => (
                             <TabsTrigger

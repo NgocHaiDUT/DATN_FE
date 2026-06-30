@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +80,7 @@ import { UserVouchersTab } from "./UserVouchersTab";
 
 export function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuthStore();
   const { shop, refetch: refetchShop } = useShop();
   const { isOwner } = usePermissions();
@@ -108,6 +109,13 @@ export function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (["profile", "wallet", "vouchers", "saved", "settings"].includes(tab || "")) {
+      setActiveTab(tab as string);
+    }
+  }, [searchParams]);
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
   const [notifications, setNotifications] = useState({

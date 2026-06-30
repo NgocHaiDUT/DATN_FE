@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 import { translations, type Locale, type TranslationKey } from './translations';
 
 type I18nContextValue = {
@@ -13,14 +13,8 @@ const STORAGE_KEY = 'pbl6_locale';
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState<Locale>('vi');
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === 'en') {
-      setLocale('en');
-    }
-  }, []);
+  const locale: Locale = 'vi';
+  const setLocale = (_locale: Locale) => {};
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, locale);

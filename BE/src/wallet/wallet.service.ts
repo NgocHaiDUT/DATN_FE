@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreatePayoutRequestDto,
@@ -299,14 +300,23 @@ export class WalletService {
   // Called by OrderService when order is delivered
   // -------------------------------------------------------
   async settleOrder(orderId: number) {
-    const order = await this.prisma.orders.findUnique({
+    return this.prisma.$transaction((tx) =>
+      this.settleOrderInTransaction(tx, orderId),
+    );
+  }
+
+  async settleOrderInTransaction(
+    tx: Prisma.TransactionClient,
+    orderId: number,
+  ) {
+    const order = await tx.orders.findUnique({
       where: { id: orderId },
       include: { shop: true },
     });
     if (!order) return;
 
     // Idempotency guard
-    const existing = await this.prisma.platform_revenue.findUnique({
+    const existing = await tx.platform_revenue.findUnique({
       where: { order_id: orderId },
     });
     if (existing) return;
@@ -317,42 +327,39 @@ export class WalletService {
     const commissionAmt = Math.round(gross * commissionRate);
     const sellerAmt = gross - commissionAmt;
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.platform_revenue.create({
-        data: {
-          order_id: orderId,
-          shop_id: shop.id,
-          gross_amount: gross,
-          commission_rate: commissionRate,
-          commission_amt: commissionAmt,
-          seller_amt: sellerAmt,
-        },
-      });
+    await tx.platform_revenue.create({
+      data: {
+        order_id: orderId,
+        shop_id: shop.id,
+        gross_amount: gross,
+        commission_rate: commissionRate,
+        commission_amt: commissionAmt,
+        seller_amt: sellerAmt,
+      },
+    });
 
-      const wallet = await tx.seller_wallets.findUnique({
-        where: { shop_id: shop.id },
-      });
-      const walletId = wallet
-        ? wallet.id
-        : (await tx.seller_wallets.create({ data: { shop_id: shop.id } })).id;
+    const wallet = await tx.seller_wallets.upsert({
+      where: { shop_id: shop.id },
+      create: { shop_id: shop.id },
+      update: {},
+    });
 
-      await tx.seller_wallets.update({
-        where: { id: walletId },
-        data: {
-          balance: { increment: sellerAmt },
-          total_earned: { increment: sellerAmt },
-        },
-      });
+    await tx.seller_wallets.update({
+      where: { id: wallet.id },
+      data: {
+        balance: { increment: sellerAmt },
+        total_earned: { increment: sellerAmt },
+      },
+    });
 
-      await tx.wallet_transactions.create({
-        data: {
-          wallet_id: walletId,
-          order_id: orderId,
-          type: 'credit_sale',
-          amount: sellerAmt,
-          note: `Đơn hàng #${orderId} giao thành công. Hoa hồng ${(commissionRate * 100).toFixed(1)}% (${commissionAmt.toLocaleString('vi')}đ)`,
-        },
-      });
+    await tx.wallet_transactions.create({
+      data: {
+        wallet_id: wallet.id,
+        order_id: orderId,
+        type: 'credit_sale',
+        amount: sellerAmt,
+        note: `Don hang #${orderId} giao thanh cong. Hoa hong ${(commissionRate * 100).toFixed(1)}% (${commissionAmt.toLocaleString('vi')}d)`,
+      },
     });
   }
 

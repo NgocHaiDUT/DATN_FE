@@ -308,11 +308,15 @@ export class MakeupController {
   @Post('vr-review/snooze')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Snooze VR makeup review prompt' })
-  async snoozeVrReview(@Req() req: any, @Body() body: { days: number }) {
+  async snoozeVrReview(
+    @Req() req: any,
+    @Body() body: { days?: number; minutes?: number },
+  ) {
     const userId = req.user.userId || req.user.sub;
     const data = await this.makeupService.snoozeVrReviewPrompt(
       userId,
-      Number(body.days || 1),
+      body.days !== undefined ? Number(body.days) : undefined,
+      body.minutes !== undefined ? Number(body.minutes) : undefined,
     );
     return { success: true, data };
   }

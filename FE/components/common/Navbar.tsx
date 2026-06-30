@@ -15,11 +15,8 @@ import {
   X,
   Sparkles,
   Package,
-  Rss,
   MessageCircle,
   ArrowUpLeft,
-  Bell,
-  Languages,
   Heart
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth.store';
@@ -27,7 +24,6 @@ import { PERMISSIONS } from '@/constants/permissions';
 import { ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/features/auth/usePermissions';
 import { useAutocomplete } from '@/features/search/useSearch';
-import { NotificationDropdown } from '@/components/common/NotificationDropdown';
 import { useI18n } from '@/lib/i18n/I18nContext';
 
 export default function Navbar() {
@@ -40,7 +36,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const { locale, setLocale, t } = useI18n();
+  const { t } = useI18n();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -220,30 +216,8 @@ export default function Navbar() {
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center gap-1 rounded-full border border-gray-200 px-1 py-1">
-            <Button
-              variant={locale === 'vi' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 rounded-full px-2 text-xs"
-              onClick={() => setLocale('vi')}
-              title={t('lang.vi')}
-            >
-              <Languages className="h-3.5 w-3.5 mr-1" />VI
-            </Button>
-            <Button
-              variant={locale === 'en' ? 'default' : 'ghost'}
-              size="sm"
-              className="h-7 rounded-full px-2 text-xs"
-              onClick={() => setLocale('en')}
-              title={t('lang.en')}
-            >
-              EN
-            </Button>
-          </div>
-
           {isAuthenticated ? (
             <>
-              <NotificationDropdown />
               <Link href="/order">
                 <Button variant="ghost" size="icon" title={t('navbar.myOrders')}>
                   <Package className="h-5 w-5" />
@@ -345,14 +319,6 @@ export default function Navbar() {
                   >
                     <Package className="h-5 w-5" />
                     {t('navbar.myOrders')}
-                  </Link>
-                  <Link
-                    href="/notifications"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-gray-100 text-gray-700"
-                  >
-                    <Bell className="h-5 w-5" />
-                    {t('navbar.notifications')}
                   </Link>
                   <Link
                     href="/wishlist"

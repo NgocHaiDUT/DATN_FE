@@ -31,8 +31,8 @@ export function getVrReviewUnavailableMessage(status: VrReviewPromptStatus) {
 
   if (status?.reason === "reviewed_today" || status?.reason === "review_cooldown") {
     return nextTime
-      ? `Bạn đã đánh giá model trong ngày hôm nay. Có thể đánh giá lại từ ${nextTime}`
-      : "Bạn đã đánh giá model trong ngày hôm nay";
+      ? `Bạn vừa đánh giá model. Có thể đánh giá lại từ ${nextTime}`
+      : "Bạn vừa đánh giá model. Vui lòng thử lại sau 10 phút";
   }
 
   return "Hiện chưa thể mở đánh giá model";

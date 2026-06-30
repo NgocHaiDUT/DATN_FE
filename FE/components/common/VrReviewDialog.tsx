@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Gift, Loader2, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,6 +72,8 @@ export function VrReviewDialog({
   onOpenChange,
   onSubmitted,
 }: VrReviewDialogProps) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [rating, setRating] = useState(5);
   const [aspects, setAspects] = useState<Record<string, string>>({
     realism: "very_good",
@@ -103,14 +107,24 @@ export function VrReviewDialog({
         }),
       });
       const voucher = response?.data?.voucher;
+      const alreadyReceivedVoucher = response?.data?.voucher_already_granted;
+      queryClient.invalidateQueries({ queryKey: ["my-vouchers"] });
       const expiresAt = voucher?.expires_at
         ? new Date(voucher.expires_at).toLocaleDateString("vi-VN")
         : "";
-      toast.success(
-        expiresAt
-          ? `Đã nhận voucher giảm 30.000đ phí ship, hạn dùng ${expiresAt}`
-          : "Đã nhận voucher giảm 30.000đ phí ship",
-      );
+      const toastMessage = voucher
+        ? expiresAt
+          ? `\u0110\u00e3 nh\u1eadn voucher gi\u1ea3m 30.000\u0111 ph\u00ed ship, h\u1ea1n d\u00f9ng ${expiresAt}`
+          : "\u0110\u00e3 nh\u1eadn voucher gi\u1ea3m 30.000\u0111 ph\u00ed ship"
+        : alreadyReceivedVoucher
+          ? "\u0110\u00e3 g\u1eedi \u0111\u00e1nh gi\u00e1. Voucher \u0111\u00e1nh gi\u00e1 model \u0111\u00e3 \u0111\u01b0\u1ee3c nh\u1eadn tr\u01b0\u1edbc \u0111\u00f3."
+          : "\u0110\u00e3 g\u1eedi \u0111\u00e1nh gi\u00e1.";
+      toast.success(toastMessage, {
+        action: {
+          label: "Xem voucher",
+          onClick: () => router.push("/profile?tab=vouchers"),
+        },
+      });
       onSubmitted?.();
       onOpenChange(false);
     } catch (error: any) {
@@ -120,11 +134,11 @@ export function VrReviewDialog({
     }
   };
 
-  const snoozePrompt = async (days: number) => {
+  const snoozePrompt = async (payload: { days?: number; minutes?: number }) => {
     try {
       await apiClient(ENDPOINTS.MAKEUP.VR_REVIEW_SNOOZE, {
         method: "POST",
-        body: JSON.stringify({ days }),
+        body: JSON.stringify(payload),
       });
     } catch {
       // Không chặn thao tác đóng popup nếu lưu nhắc lại thất bại.
@@ -151,7 +165,7 @@ export function VrReviewDialog({
             <div>
               <CardTitle className="text-lg">Đánh giá trải nghiệm thử trang điểm</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Chọn nhanh cảm nhận của bạn để nhận voucher giảm 30.000đ phí ship.
+                Chọn nhanh cảm nhận của bạn để nhận voucher giảm 30.000đ phí ship nếu chưa nhận trước đó.
               </p>
             </div>
           </div>
@@ -237,17 +251,17 @@ export function VrReviewDialog({
               className="w-full bg-pink-600 hover:bg-pink-700"
             >
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Gửi đánh giá và nhận voucher
+              Gửi đánh giá
             </Button>
             {showSnoozeOptions ? (
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" size="sm" onClick={() => snoozePrompt(1)}>
-                  Không hỏi lại 1 ngày
+                <Button variant="outline" size="sm" onClick={() => snoozePrompt({ minutes: 10 })}>
+                  {"Kh\u00f4ng h\u1ecfi l\u1ea1i 10 ph\u00fat"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => snoozePrompt(7)}>
+                <Button variant="outline" size="sm" onClick={() => snoozePrompt({ days: 7 })}>
                   Không hỏi lại 7 ngày
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => snoozePrompt(30)}>
+                <Button variant="outline" size="sm" onClick={() => snoozePrompt({ days: 30 })}>
                   Không hỏi lại 30 ngày
                 </Button>
               </div>

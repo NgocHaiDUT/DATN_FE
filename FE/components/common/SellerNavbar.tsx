@@ -17,7 +17,6 @@ import { useShop } from "@/features/shop/useShop";
 import { usePermissions } from "@/features/auth/usePermissions";
 import { useRouter } from "next/navigation";
 import { useLogout } from "@/features/auth/useLogout";
-import { NotificationDropdown } from "@/components/common/NotificationDropdown";
 import { useI18n } from "@/lib/i18n/I18nContext";
 type NavbarProps = {
     sidebarOpen: boolean;
@@ -75,8 +74,6 @@ export function SellerNavbar({
 
                 {/* Right */}
                 <div className="flex items-center gap-4">
-                    <NotificationDropdown />
-
                     {mounted && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
