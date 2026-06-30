@@ -924,7 +924,7 @@ export class OrderService {
       });
       if (!order?.user?.email) return;
 
-      this.orderEmailService.sendStatusUpdate({
+      await this.orderEmailService.sendStatusUpdate({
         orderId: order.id,
         customerEmail: order.user.email,
         customerName: order.user.full_name || 'Khách hàng',
@@ -1540,8 +1540,8 @@ export class OrderService {
         }
       }
 
-      // Send status update email (fire-and-forget)
-      this.sendStatusUpdateEmail(orderId, status);
+      // Email failures are logged inside the helper and must not break order flow.
+      await this.sendStatusUpdateEmail(orderId, status);
 
       return {
         success: true,
@@ -1610,7 +1610,7 @@ export class OrderService {
 
         await this.walletService.settleOrderInTransaction(tx, orderId);
       });
-      this.sendStatusUpdateEmail(orderId, 'delivered');
+      await this.sendStatusUpdateEmail(orderId, 'delivered');
 
       return {
         success: true,
@@ -2433,7 +2433,7 @@ export class OrderService {
           );
         }
       }
-      this.sendStatusUpdateEmail(request.order_id, 'refunded');
+      await this.sendStatusUpdateEmail(request.order_id, 'refunded');
     }
 
     return updated;

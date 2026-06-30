@@ -460,6 +460,7 @@ export default function OrderDetailPage() {
                                         )}
                                         {order.status === "shipped" && (
                                             <Button
+                                                type="button"
                                                 onClick={handleConfirmReceived}
                                                 disabled={confirmReceivedMutation.isPending}
                                                 className="w-full h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-base font-bold shadow-lg shadow-emerald-100 mb-2"

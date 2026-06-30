@@ -228,6 +228,7 @@ export default function OrderListPage() {
                                                 )}
                                                 {order.status === 'shipped' && (
                                                     <Button
+                                                        type="button"
                                                         size="sm"
                                                         className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white"
                                                         onClick={() => handleConfirmReceived(order.id)}
